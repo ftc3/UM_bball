@@ -1,4 +1,4 @@
-# UM_bball
+# UM_bball Project
 Scraping and analyzing University of Michigan Men's basketball player level data by game
 
 # player_per_game.py
