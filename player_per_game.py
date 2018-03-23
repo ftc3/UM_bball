@@ -20,11 +20,15 @@ errors = 0
 schedule_req = urllib2.Request('http://mgoblue.com/schedule.aspx?schedule=' + str(year_code), headers={ 'User-Agent': 'Mozilla/5.0' })
 schedule = urllib2.urlopen(schedule_req).read()
 
+### Optional saving html from schedule page, using saved data ###
+# schedsave = open('schedule.txt', 'w')
+# schedsave.write(str(schedule))
+# schedule = open('schedule13.txt', 'r').read()
+
 #### bs parse locating game container
 sched_parse = BeautifulSoup(schedule, 'html.parser')
 games = sched_parse.find('ul', {'class':"sidearm-schedule-games-container"}).findAll('li', {'class': 'sidearm-schedule-game'})
 print len(games), 'games in the %s season' % year, '\n'
-
 
 # ### investigating individual objects ####
 # c = 0
@@ -42,7 +46,7 @@ for g in games:
 print len(game_ids), 'game ids: ', game_ids
 time.sleep(10)
 
-# Box scores page
+# Box scores page example
 # http://mgoblue.com/boxscore.aspx?id=11503&path=mbball
 
 #### html of a boxscore page ####
@@ -53,7 +57,12 @@ for game_id,location in game_ids:
         box_req = urllib2.Request('http://mgoblue.com/boxscore.aspx?id='+ game_id +'&path=mbball', headers={ 'User-Agent': 'Mozilla/5.0' })
         box = urllib2.urlopen(box_req).read()
 
-        box_parse = BeautifulSoup(box, 'html.parser')
+        ### Optional saving html from boxscore, using saved data ###
+        # box_save = open('box.txt', 'w')
+        # box_save.write(str(box))
+        # box = open('box.txt', 'r').read()
+
+        box_parse = BeautifulSoup(box, 'html.parser')  # was just box
         team_score = box_parse.findAll('h2', {'class': 'sub-heading'})
 
         # finding whether Michigan is the away/home (0/1) team (position of Michigan's data)
@@ -94,6 +103,7 @@ for game_id,location in game_ids:
                             varnames.append(rsearch.group(1))
                             varnames.append(rsearch.group(2))
                             continue
+                        if re.match(r'REB', v2): continue
                         varnames.append(v2)
                 print len(varnames), varnames
                 row_index +=1
@@ -108,19 +118,33 @@ for game_id,location in game_ids:
                     final_row.append(rsearch.group(2))
                     continue
                 final_row.append(v2)
-            final_row.append(scoreboard)
-            final_row.append(game_date)
-            final_row.append(location)
             rscore = re.search('\s([0-9]{2,3})\s.*\s([0-9]{2,3})$', scoreboard)
             rs = (int(rscore.group(1)), int(rscore.group(2)))
+            regex_name = re.search('(.*)\s[0-9]{2,3}\s(.*)\s[0-9]{2,3}$', scoreboard)
+            if table_index == 0:
+                UM_score = rs[0]
+                opp_score = rs[1]
+                opp_name = regex_name.group(2)
+            if table_index == 1:
+                UM_score = rs[1]
+                opp_score = rs[0]
+                opp_name = regex_name.group(1)
+            final_row.append(opp_name)
+            final_row.append(opp_score)
+            final_row.append(UM_score)
+            final_row.append(game_date)
+            final_row.append(location)
             if rs[0] > rs[1]:
                 if table_index ==0 : final_row.append('W')
                 if table_index ==1 : final_row.append('L')
             if rs[0] < rs[1]:
                 if table_index ==1 : final_row.append('W')
                 if table_index ==0 : final_row.append('L')
-            print len(final_row), final_row
-            file_list.append(final_row)
+            f_row = []
+            f_row.extend(final_row[:12])
+            f_row.extend(final_row[13:])
+            print len(f_row), f_row
+            file_list.append(f_row)
         time.sleep(8)
     except:
         print 'ERROR FOR GAME ID: ', game_id
@@ -128,7 +152,7 @@ for game_id,location in game_ids:
         time.sleep(10)
         continue
 
-varnames.extend(['score', 'date', 'court', 'result'])
+varnames.extend(['Opponent', 'Opp_score', 'UM_score', 'Date', 'Court', 'Result'])
 print len(varnames), varnames
 print 'Number of errors :', errors
 
